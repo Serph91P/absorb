@@ -204,13 +204,30 @@
   "downloaded": "Скачано",
   "hasEbook": "Имеет eBook",
   "explicitContent": "Ненорм. лексика",
+  "missingMetadata": "Отсутствуют метаданные",
+  "genre": "Жанр",
+  "tag": "Тег",
   "clearFilter": "Очистить фильтр",
   "noGenresFound": "Жанры не найдены",
   "noTagsFound": "Теги не найдены",
+  "asc": "ВОЗР",
+  "desc": "УБЫВ",
   "fileSize": "Размер файла",
+  "lastUpdated": "Последнее обновление",
+  "fileCreated": "Файл создан",
+  "lastModified": "Последнее изменение",
+  "authorFirstLast": "Автор (Имя Фамилия)",
+  "authorLastFirst": "Автор (Фамилия, Имя)",
+  "progressSort": "Прогресс",
   "dateFinished": "Дата завершения прослушивание",
+  "episodeCount": "Число выпусков",
+  "absorbingTitle": "Поглощение",
   "absorbingStop": "Стоп",
   "absorbingDone": "Готово",
+  "absorbingNoDownloadedEpisodes": "Нет скачанных выпусков",
+  "absorbingNoDownloadedBooks": "Нет скачанных книг",
+  "absorbingNothingPlayingYet": "Пока ничего не играет",
+  "absorbingNothingAbsorbingYet": "Пока ничего не поглощается",
   "carModeBookLabel": "Книга",
   "carModeChapterLabel": "Глава",
   "carModeBookmarkDefault": "Закладка",
@@ -353,6 +370,7 @@
   "statsTotalListeningTime": "ОБЩЕЕ ВРЕМЯ ПРОСЛУШИВАНИЯ",
   "statsHoursUnit": "ч",
   "statsMinutesUnit": "м",
+  "statsSecondsUnit": "с",
   "statsDaysOfAudio": "Это {days} дней звучания",
   "@statsDaysOfAudio": {
     "placeholders": {
@@ -392,7 +410,7 @@
       }
     }
   },
-  "statsRemoveFromYearNoDate": "Дата завершения останется на сервере. Это только удаляет \"{title}\" из вашего Absorb списка книги-за-этот-год.",
+  "statsRemoveFromYearNoDate": "Дата завершения останется на сервере. Это только удаляет \"{title}\" из твоего Absorb списка \"Книги за этот год\".",
   "@statsRemoveFromYearNoDate": {
     "placeholders": {
       "title": {
@@ -400,7 +418,7 @@
       }
     }
   },
-  "statsAddBackToYearBody": "Добавить \"{title}\" обратно в список Absorb книги-за-этот-год?",
+  "statsAddBackToYearBody": "Добавить \"{title}\" обратно в список Absorb \"Книги за этот год\"?",
   "@statsAddBackToYearBody": {
     "placeholders": {
       "title": {
@@ -408,6 +426,58 @@
       }
     }
   },
+  "statsBooksShort": "{count} книг",
+  "@statsBooksShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsDailyGoal": "Ежедневная цель",
+  "statsWeeklyGoal": "Еженедельная цель",
+  "statsMonthlyGoal": "Ежемесячная цель",
+  "statsGoalProgress": "{done} / {target}",
+  "@statsGoalProgress": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "statsBookChallengeProgress": "{done} из {target} книг",
+  "@statsBookChallengeProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
+  "statsGoalReached": "Цель достигнута",
+  "statsChartTitle": "График прослушивания",
+  "statsChartBar": "Столб",
+  "statsChartLine": "Линия",
+  "statsChartHeatmap": "Тепловая карта",
+  "statsChartDays7": "7 дней",
+  "statsChartDays30": "30 дней",
+  "statsLast30Days": "Последние 30 дней",
+  "statsThisYearTitle": "Текущий год",
+  "statsSectionsTitle": "Разделы",
+  "statsSectionTimePeriods": "Временные периоды",
+  "statsHeatmapLess": "Меньше",
+  "statsHeatmapMore": "Больше",
+  "statsDayOfWeek": "В среднем по дням недели",
+  "statsDaysActive": "Дней Активности",
+  "statsDailyAverage": "В среднем за день",
+  "statsLast7Days": "Последние 7 дней",
+  "statsMostListened": "Самые слушаемые",
+  "statsRecentSessions": "Недавние сессии",
   "appShellHomeTab": "Главная",
   "appShellLibraryTab": "Библиотека",
   "appShellStatsTab": "Статистика",
@@ -599,6 +669,100 @@
   "episodeListShowFinishedEpisodes": "Показивать прослушанные выпуски",
   "episodeListHideFinishedEpisodes": "Прятать прослушанные выпуски",
   "episodeDetailMarkedFinishedNice": "Отметить как прослушано - круто!",
+  "statsScreenStreakDays": "{count}д",
+  "@statsScreenStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsScreenSessionCountOne": "{count} сессия",
+  "@statsScreenSessionCountOne": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsScreenSessionCountOther": "{count} сессий",
+  "@statsScreenSessionCountOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsScreenDayMon": "Пон",
+  "statsScreenDayTue": "Втр",
+  "statsScreenDayWed": "Срд",
+  "statsScreenDayThu": "Чтв",
+  "statsScreenDayFri": "Птн",
+  "statsScreenDaySat": "Сбт",
+  "statsScreenDaySun": "Вск",
+  "statsScreenDurationHm": "{h}ч {m}м",
+  "@statsScreenDurationHm": {
+    "placeholders": {
+      "h": {
+        "type": "int"
+      },
+      "m": {
+        "type": "int"
+      }
+    }
+  },
+  "statsScreenDurationM": "{m}м",
+  "@statsScreenDurationM": {
+    "placeholders": {
+      "m": {
+        "type": "int"
+      }
+    }
+  },
+  "statsScreenDurationLessThanMin": "<1м",
+  "statsScreenDurationZero": "0м",
+  "statsScreenDurationShortH": "{h}ч",
+  "@statsScreenDurationShortH": {
+    "placeholders": {
+      "h": {
+        "type": "int"
+      }
+    }
+  },
+  "statsScreenDurationShortM": "{m}м",
+  "@statsScreenDurationShortM": {
+    "placeholders": {
+      "m": {
+        "type": "int"
+      }
+    }
+  },
+  "statsScreenCouldNotLoadItem": "Не удалось загрузить элемент",
+  "statsScreenCouldNotFindEpisode": "Не удалось найти выпуск",
+  "statsScreenByAuthor": "от {author}",
+  "@statsScreenByAuthor": {
+    "placeholders": {
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "statsScreenDevice": "Устройство",
+  "statsScreenOs": "ОС",
+  "statsScreenPlayMethod": "Способ воспроизведения",
+  "statsScreenLoading": "Загрузка...",
+  "statsScreenMonthJan": "Янв",
+  "statsScreenMonthFeb": "Фев",
+  "statsScreenMonthMar": "Мар",
+  "statsScreenMonthApr": "Апр",
+  "statsScreenMonthMay": "Май",
+  "statsScreenMonthJun": "Июн",
+  "statsScreenMonthJul": "Июл",
+  "statsScreenMonthAug": "Авг",
+  "statsScreenMonthSep": "Сен",
+  "statsScreenMonthOct": "Окт",
+  "statsScreenMonthNov": "Ноя",
+  "statsScreenMonthDec": "Дек",
   "absorbingSharedToday": "Сегодня",
   "absorbingSharedYesterday": "Вчера",
   "absorbingSharedMonday": "Понедельник",
@@ -803,6 +967,13 @@
   "bookmarkListen": "Прослушать",
   "bookmarkPause": "Пауза",
   "bookmarkPreviewFailed": "Не удалось воспроизвести это место.",
+  "adminStats": "Статистика",
+  "statsTotalItems": "Элементы",
+  "statsAudioFiles": "Аудио файлы",
+  "statsTotalSize": "Общий размер",
+  "statsTopAuthors": "Топ авторы",
+  "statsTopNarrators": "Топ чтецы",
+  "statsTopGenres": "Топ жанры",
   "libMarkPercent": "Прослушано когда готово на %",
   "libMarkTime": "Прослушано когда останется секунд",
   "detailChaptersFinished": "{count, plural, =1{1 глава прослушана} other{{count} главы прослушаны}}",
@@ -824,5 +995,7 @@
         "type": "int"
       }
     }
-  }
+  },
+  "bookStatsYou": "Ты",
+  "bookStatsEveryone": "Все"
 }
