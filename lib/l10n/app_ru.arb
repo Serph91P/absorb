@@ -98,6 +98,7 @@
   },
   "setupLinkInvalid": "Эта ссылка на вход недействительна или неполная",
   "loginFailed": "Не удалось войти",
+  "loginRestore": "Восстановить",
   "loginSessionExpired": "Настройки восстановлены. Сессия истекла - войдите, чтобы продолжить.",
   "loginSettingsRestored": "Настройки восстановлены",
   "loginRestoreFailed": "Ошибка восстановления: {error}",
@@ -111,19 +112,44 @@
   "loginSavedAccounts": "сохранённые аккаунты",
   "libraryTitle": "Библиотека",
   "librarySearchBooksHint": "Поиск книг, серий, авторов, чтецов...",
+  "librarySearchShowsHint": "Поиск Шоу и Выпусков...",
   "libraryTabLibrary": "Библиотека",
   "libraryTabSeries": "Серии",
   "libraryTabAuthors": "Авторы",
   "libraryTabNarrators": "Чтецы",
   "libraryNoBooks": "Книги не найдены",
-  "libraryNoUnfinishedBooks": "Нет незавершенных книг",
+  "libraryNoUnfinishedBooks": "Нет не прослушанных книг",
   "libraryNoBooksInProgress": "Нет начатых книг",
-  "libraryNoFinishedBooks": "Нет завершенных книг",
+  "libraryNoFinishedBooks": "Нет прослушанных книг",
   "libraryAllBooksStarted": "Все книги начаты",
+  "libraryNoDownloadedBooks": "Нет скачанных книг",
+  "libraryNoSeriesFound": "Серии не найдены",
+  "libraryNoBooksWithEbooks": "Нет книг с eBook",
+  "libraryNoBooksMissingMetadata": "Нет книг без этих метаданных",
+  "libraryNoItemsMatchingFilter": "Нет элементов, соответствующих этому фильтру",
+  "libraryNoBooksInGenre": "Нет книг с жанром \"{genre}\"",
+  "@libraryNoBooksInGenre": {
+    "placeholders": {
+      "genre": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryNoBooksWithTag": "Нет книг с тегом \"{tag}\"",
+  "@libraryNoBooksWithTag": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryClearFilter": "Сбросить фильтр",
   "libraryNoAuthorsFound": "Авторы не найдены",
   "libraryNoNarratorsFound": "Чтецы не найдены",
   "libraryNoResults": "Результаты не найдены",
   "librarySearchBooks": "Книги",
+  "librarySearchShows": "Шоу",
+  "librarySearchEpisodes": "Выпуски",
   "librarySearchSeries": "Серии",
   "librarySearchAuthors": "Авторы",
   "librarySearchTags": "Теги",
@@ -173,6 +199,8 @@
   "publishedYear": "Год публикации",
   "duration": "Длительность",
   "collapseSeries": "Свернуть серии",
+  "notFinished": "Не Прослушано",
+  "filterFinished": "Прослушано",
   "downloaded": "Скачано",
   "hasEbook": "Имеет eBook",
   "explicitContent": "Ненорм. лексика",
@@ -180,6 +208,7 @@
   "noGenresFound": "Жанры не найдены",
   "noTagsFound": "Теги не найдены",
   "fileSize": "Размер файла",
+  "dateFinished": "Дата завершения прослушивание",
   "absorbingStop": "Стоп",
   "absorbingDone": "Готово",
   "carModeBookLabel": "Книга",
@@ -363,6 +392,22 @@
       }
     }
   },
+  "statsRemoveFromYearNoDate": "Дата завершения останется на сервере. Это только удаляет \"{title}\" из вашего Absorb списка книги-за-этот-год.",
+  "@statsRemoveFromYearNoDate": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "statsAddBackToYearBody": "Добавить \"{title}\" обратно в список Absorb книги-за-этот-год?",
+  "@statsAddBackToYearBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "appShellHomeTab": "Главная",
   "appShellLibraryTab": "Библиотека",
   "appShellStatsTab": "Статистика",
@@ -372,6 +417,7 @@
   "languageLabel": "Язык",
   "languageSystemDefault": "По умолчанию системы",
   "languageHelpTranslateInvite": "Хотите помочь перевести Absorb на ваш язык?",
+  "colorSourceNowPlaying": "Сейчас Играет",
   "startScreenLabel": "Начальный экран",
   "startScreenSubtitle": "Какая вкладка открывается при запуске приложения",
   "startScreenHome": "Главная",
@@ -380,6 +426,8 @@
   "disablePageFade": "Отключить затухание страницы",
   "disablePageFadeOnSubtitle": "Страницы переключаются мгновенно",
   "disablePageFadeOffSubtitle": "Страницы затухают при смене вкладок",
+  "sectionAbsorbingCards": "Карты Поглощение",
+  "whenAbsorbedInfoContent": "Управляет что случается с Картой Поглощение когда книга или выпуск прослушан.\n\nПрослушанные карты автоматически удаляются с экрана Поглощение.",
   "mergeLibraries": "Единая страница Поглощения",
   "mergeLibrariesInfoTitle": "Главная Поглощающая Страница",
   "mergeLibrariesInfoContent": "Если включено, в одном окне отображаются все ваши текущие книги и подкасты из каждой библиотеки. Когда отключено, отображаются только элементы из выбранной вами библиотеки.",
@@ -460,6 +508,8 @@
   "downloadOverWifiOnly": "Сеть для скачивания",
   "downloadOverWifiOnSubtitle": "Только Wi-Fi",
   "downloadOverWifiOffSubtitle": "Любая связь",
+  "deleteAbsorbedOnSubtitle": "Скачанное удаляется после прослушивание",
+  "deleteAbsorbedOffSubtitle": "Выкл. - скачанное после прослушивание не удаляется",
   "streamingCacheCleared": "Кэш вещания очищен",
   "sectionLibrary": "Библиотека",
   "sectionPermissions": "Разрешения",
@@ -484,9 +534,37 @@
   "adminRmabSubtitle": "Открыть в приложении",
   "rmabRequestErrorAlreadyAvailable": "Уже в вашей библиотеке",
   "clearLocalMetadata": "Очистить локальные метаданные",
+  "encodeFinished": "Завершено кодирование M4B",
+  "encodeOutputPathNote": "Готовый файл M4B будет помещен в папку аудиокниг: {path}/",
+  "@encodeOutputPathNote": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "finishedDate": "Прослушано {date}",
+  "@finishedDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "markedAsFinishedNiceWork": "Помечено как прослушано - красивая работа!",
+  "markAsNotFinishedQuestion": "Пометить как не прослушано?",
+  "markAsNotFinishedContent": "Это очистит статус прослушано и вернет вашу позицию на начало.",
+  "markedAsNotFinishedBackAtIt": "Помечено как не прослушано - Ещё разок!",
   "addBookmark": "Добавить закладку",
   "editBookmark": "Изменить закладку",
+  "markAllNotFinished": "Отметить всё как не прослушано",
+  "markAllFinished": "Отметить всё как прослушано",
+  "markAllNotFinishedQuestion": "Отметить всё как не прослушано?",
+  "markFinished": "Отметить как прослушано",
+  "markUnfinished": "Отметить как не прослушано",
   "searchForMetadataAbove": "Искать метаданные выше",
+  "welcomeFullyAbsorbBullet": "Полное Поглощение - отметить как прослушано",
+  "finished": "Прослушано",
   "audible": "Audible",
   "iTunes": "iTunes",
   "reset": "Сбросить",
@@ -502,6 +580,25 @@
     }
   },
   "checkForUpdate": "Проверить наличие обновлений",
+  "episodeListMarkedFinished": "{count, plural,  =1{1 выпуск помечен как  \t\nпрослушанный} other{{count} выпуски помечены как прослушанные}}",
+  "@episodeListMarkedFinished": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "episodeListMarkedUnfinished": "{count, plural,  =1{1 выпуск помечен как  \t\nне прослушанный} other{{count} выпуски помечены как не прослушанные}}",
+  "@episodeListMarkedUnfinished": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "episodeListShowFinishedEpisodes": "Показивать прослушанные выпуски",
+  "episodeListHideFinishedEpisodes": "Прятать прослушанные выпуски",
+  "episodeDetailMarkedFinishedNice": "Отметить как прослушано - круто!",
   "absorbingSharedToday": "Сегодня",
   "absorbingSharedYesterday": "Вчера",
   "absorbingSharedMonday": "Понедельник",
@@ -511,6 +608,8 @@
   "absorbingSharedFriday": "Пятница",
   "absorbingSharedSaturday": "Суббота",
   "absorbingSharedSunday": "Воскресенье",
+  "tipsSheetCoverPlayPauseDesc": "Коснись обложки на любой карте для игры или паузы. Включи это в Настройках в разделе Карты Поглощение. Тусклый значок паузы отображается при воспроизведении, чтобы ты знал, что обложка кнопка.",
+  "tipsSheetSwipeBetweenBooksDesc": "Проведи пальцем влево и вправо на экране Поглощение для переключения между текущих книг. В режиме ручной очереди карты действуют как очередь, так что следующая автоматически играет, когда текущая карта закончится.",
   "tipsSheetAutoRewindTitle": "Авто-перемотка",
   "tipsSheetUpcomingReleasesTitle": "Предстоящие Релизы",
   "tipsSheetCarModeTitle": "Режим \"В автомобиле\"",
@@ -703,5 +802,27 @@
   "sleepTimerSheetEpisodeSleepStart": "Сон в конце серии",
   "bookmarkListen": "Прослушать",
   "bookmarkPause": "Пауза",
-  "bookmarkPreviewFailed": "Не удалось воспроизвести это место."
+  "bookmarkPreviewFailed": "Не удалось воспроизвести это место.",
+  "libMarkPercent": "Прослушано когда готово на %",
+  "libMarkTime": "Прослушано когда останется секунд",
+  "detailChaptersFinished": "{count, plural, =1{1 глава прослушана} other{{count} главы прослушаны}}",
+  "@detailChaptersFinished": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seriesStatsFinished": "Прослушано",
+  "seriesFinishedOf": "{done} из {total}",
+  "@seriesFinishedOf": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
 }
