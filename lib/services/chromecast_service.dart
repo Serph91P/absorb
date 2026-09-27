@@ -6,12 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_chrome_cast/flutter_chrome_cast.dart';
 import 'api_service.dart';
 import 'audio_player_service.dart';
+import 'cast_playback_policy.dart';
 import 'chapter_lookup.dart';
 import 'progress_sync_service.dart';
 
 enum CastConnectionState { disconnected, connecting, connected }
-enum CastPlaybackState { idle, loading, playing, paused, buffering }
-
 class ChromecastService extends ChangeNotifier {
   static final ChromecastService _instance = ChromecastService._();
   factory ChromecastService() => _instance;
@@ -28,7 +27,13 @@ class ChromecastService extends ChangeNotifier {
   CastPlaybackState get playbackState => _playbackState;
   bool get isConnected => _connectionState == CastConnectionState.connected;
   bool get isCasting => isConnected && _playbackState != CastPlaybackState.idle;
+  /// Active receiver playback used by the controls and sleep timer.
+  ///
+  /// Keep [isPlaying] strict so buffering time is not counted as listening
+  /// statistics; a receiver can still be audibly playing while reporting it.
+  bool get isReceiverActive => isCastReceiverActive(_playbackState);
   bool get isPlaying => _playbackState == CastPlaybackState.playing;
+  bool get shouldPauseOnToggle => shouldPauseCastOnToggle(_playbackState);
 
   /// True while a backstop reconnect is being attempted after the sender lost
   /// its connection but the receiver was actively playing (see [_tryReconnect]).
@@ -496,8 +501,7 @@ class ChromecastService extends ChangeNotifier {
 
   void _listenToPosition() {
     _positionSub?.cancel();
-    // ignore: invalid_null_aware_operator
-    _positionSub = GoogleCastRemoteMediaClient.instance.playerPositionStream?.listen((pos) {
+    _positionSub = GoogleCastRemoteMediaClient.instance.playerPositionStream.listen((pos) {
       // ignore: unnecessary_null_comparison
       if (pos != null) {
         // Queue and fallback modes report track-local positions; translate
@@ -946,7 +950,7 @@ class ChromecastService extends ChangeNotifier {
     await _saveProgressLocal();
     await _syncProgressToServer();
   }
-  Future<void> togglePlayPause() async { isPlaying ? await pause() : await play(); }
+  Future<void> togglePlayPause() async { shouldPauseOnToggle ? await pause() : await play(); }
 
   Future<void> seekTo(Duration position) async {
     if (!isConnected) return;
