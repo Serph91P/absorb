@@ -10,6 +10,43 @@ enum CastPlaybackState { idle, loading, playing, paused, buffering }
 /// is used as playback evidence. A status event alone is not enough.
 const staleCastBufferingGrace = Duration(seconds: 30);
 
+/// One delayed position packet is not enough to overturn a successful sender
+/// pause command: it can have been queued before the receiver acted on pause.
+/// Consecutive progress packets are, however, liveness evidence that a receiver
+/// ignored the command, so the sender must stop showing an optimistic pause.
+const minimumPostPausePositionAdvances = 2;
+
+/// Keeps the small amount of pause-command evidence independent from the Cast
+/// plugin. This is deliberately usable by stream tests and by the service.
+class CastPauseIntent {
+  bool _requested = false;
+  int _postPausePositionAdvances = 0;
+
+  bool get isRequested => _requested;
+
+  void request() {
+    _requested = true;
+    _postPausePositionAdvances = 0;
+  }
+
+  void clear() {
+    _requested = false;
+    _postPausePositionAdvances = 0;
+  }
+
+  /// Returns true only when repeated post-command movement proves that pause
+  /// was a receiver no-op. A single delayed packet leaves the intent intact.
+  bool recordPositionAdvance() {
+    if (!_requested) return false;
+    _postPausePositionAdvances++;
+    if (_postPausePositionAdvances < minimumPostPausePositionAdvances) {
+      return false;
+    }
+    clear();
+    return true;
+  }
+}
+
 /// Whether the receiver is active enough for the sleep timer to count down.
 bool isCastReceiverActive(
   CastPlaybackState state, {

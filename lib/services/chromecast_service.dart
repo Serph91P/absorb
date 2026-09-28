@@ -59,6 +59,8 @@ class ChromecastService extends ChangeNotifier {
   Duration _castPosition = Duration.zero;
   DateTime? _lastCastPositionAdvanceAt;
   bool _castPauseRequested = false;
+  final CastPauseIntent _castPauseIntent = CastPauseIntent();
+  CastPlaybackState? _playbackStateBeforePause;
   Timer? _bufferingLivenessTimer;
   String? _connectedDeviceName;
   String? _playbackSessionId;
@@ -377,6 +379,8 @@ class ChromecastService extends ChangeNotifier {
     _castPosition = Duration.zero;
     _lastCastPositionAdvanceAt = null;
     _castPauseRequested = false;
+    _castPauseIntent.clear();
+    _playbackStateBeforePause = null;
     _bufferingLivenessTimer?.cancel();
     _bufferingLivenessTimer = null;
     _fallbackTracks = null; _fallbackOffsets = null; _fallbackTrackIdx = -1;
@@ -476,7 +480,11 @@ class ChromecastService extends ChangeNotifier {
         _idleDebounceTimer = null;
       }
 
-      if (shouldClearCastPauseIntent(target)) _castPauseRequested = false;
+      if (shouldClearCastPauseIntent(target)) {
+        _castPauseRequested = false;
+        _castPauseIntent.clear();
+        _playbackStateBeforePause = null;
+      }
 
       // If the cast reports idle while we still have an active item that isn't
       // near the end, treat it as a transient blip and wait before actually
@@ -565,8 +573,15 @@ class ChromecastService extends ChangeNotifier {
         if (_castPosition != previousPosition) {
           _lastCastPositionAdvanceAt = DateTime.now();
           // A delayed position packet can be in flight when pause() is
-          // acknowledged. Only an explicit resume/playing event clears the
-          // pause intent; otherwise stale buffering would turn Pause back on.
+          // acknowledged, so it is not by itself receiver resume evidence.
+          // A single position update can be delayed from before pause(). Two
+          // consecutive advances prove the receiver kept playing despite an
+          // otherwise successful command, so restore its pre-pause state.
+          if (_castPauseIntent.recordPositionAdvance()) {
+            _castPauseRequested = false;
+            _playbackState = _playbackStateBeforePause ?? _playbackState;
+            _playbackStateBeforePause = null;
+          }
           _scheduleBufferingLivenessNotification();
         }
         // A receiver can leave its state at buffering after it stops. Position
@@ -680,6 +695,8 @@ class ChromecastService extends ChangeNotifier {
     _castingChapters = chapters;
     _lastCastPositionAdvanceAt = null;
     _castPauseRequested = false;
+    _castPauseIntent.clear();
+    _playbackStateBeforePause = null;
     _playbackState = CastPlaybackState.loading;
     notifyListeners();
 
@@ -1001,6 +1018,8 @@ class ChromecastService extends ChangeNotifier {
     try {
       await GoogleCastRemoteMediaClient.instance.play();
       _castPauseRequested = false;
+      _castPauseIntent.clear();
+      _playbackStateBeforePause = null;
       _scheduleBufferingLivenessNotification();
     } catch (e) {
       debugPrint('[Cast] play error: $e');
@@ -1015,7 +1034,9 @@ class ChromecastService extends ChangeNotifier {
     if (!isConnected) return;
     try {
       await GoogleCastRemoteMediaClient.instance.pause();
+      _playbackStateBeforePause = _playbackState;
       _castPauseRequested = true;
+      _castPauseIntent.request();
       _playbackState = CastPlaybackState.paused;
       _scheduleBufferingLivenessNotification();
       notifyListeners();
