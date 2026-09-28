@@ -103,36 +103,46 @@ void main() {
     });
 
     test('a single delayed position does not undo pause, but continued progress does', () {
-      final intent = CastPauseIntent()..request();
+      final intent = CastPlaybackIntent()..requestPause();
 
       // This packet may have been queued before pause() completed.
-      expect(intent.recordPositionAdvance(), isFalse);
-      expect(intent.isRequested, isTrue);
+      expect(intent.recordPositionAdvance(), CastPositionEvidence.none);
+      expect(intent.isPauseRequested, isTrue);
       expect(isCastReceiverActive(
         CastPlaybackState.buffering,
         lastPositionAdvance: DateTime.utc(2026, 1, 1, 12),
         now: DateTime.utc(2026, 1, 1, 12, 0, 1),
-        isPauseRequested: intent.isRequested,
+        isPauseRequested: intent.isPauseRequested,
       ), isFalse);
 
       // Repeated progress proves that the receiver ignored the pause command.
-      expect(intent.recordPositionAdvance(), isTrue);
-      expect(intent.isRequested, isFalse);
+      expect(intent.recordPositionAdvance(), CastPositionEvidence.pauseIgnored);
+      expect(intent.isPauseRequested, isFalse);
       expect(isCastReceiverActive(
         CastPlaybackState.buffering,
         lastPositionAdvance: DateTime.utc(2026, 1, 1, 12),
         now: DateTime.utc(2026, 1, 1, 12, 0, 1),
-        isPauseRequested: intent.isRequested,
+        isPauseRequested: intent.isPauseRequested,
       ), isTrue);
     });
 
     test('failed pause has no sender intent and confirmed resume clears it', () {
-      final intent = CastPauseIntent();
-      // A failed command never calls request(), so playback remains live.
-      expect(intent.isRequested, isFalse);
-      intent.request();
+      final intent = CastPlaybackIntent();
+      // A failed command never records an intent, so playback remains live.
+      expect(intent.value, CastCommandIntent.none);
+      intent.requestPause();
       intent.clear(); // successful play / receiver playing confirmation
-      expect(intent.isRequested, isFalse);
+      expect(intent.value, CastCommandIntent.none);
+    });
+
+    test('play intent replaces pause and position confirms the resume', () {
+      final intent = CastPlaybackIntent()..requestPause();
+
+      intent.requestPlay();
+      expect(intent.isPauseRequested, isFalse);
+      expect(intent.isPlayRequested, isTrue);
+      expect(intent.recordPositionAdvance(), CastPositionEvidence.playConfirmed);
+      expect(intent.value, CastCommandIntent.none);
     });
 
     test('confirmed playing or resume is the only status pause-intent reset', () {

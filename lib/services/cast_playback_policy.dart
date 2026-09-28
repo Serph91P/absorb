@@ -16,34 +16,52 @@ const staleCastBufferingGrace = Duration(seconds: 30);
 /// ignored the command, so the sender must stop showing an optimistic pause.
 const minimumPostPausePositionAdvances = 2;
 
-/// Keeps the small amount of pause-command evidence independent from the Cast
-/// plugin. This is deliberately usable by stream tests and by the service.
-class CastPauseIntent {
-  bool _requested = false;
+/// A resume acknowledgement is authoritative only briefly. If neither a
+/// playing status nor position progress follows, the latest receiver status
+/// takes over again rather than leaving controls/timers active indefinitely.
+const castResumeIntentGrace = Duration(seconds: 5);
+
+enum CastCommandIntent { none, pause, play }
+enum CastPositionEvidence { none, pauseIgnored, playConfirmed }
+
+/// Reconciles acknowledged sender commands with receiver events which can be
+/// delivered out of order. There is one command intent at a time, so a new
+/// pause/play acknowledgement replaces the previous command atomically.
+class CastPlaybackIntent {
+  CastCommandIntent _intent = CastCommandIntent.none;
   int _postPausePositionAdvances = 0;
 
-  bool get isRequested => _requested;
+  CastCommandIntent get value => _intent;
+  bool get isPauseRequested => _intent == CastCommandIntent.pause;
+  bool get isPlayRequested => _intent == CastCommandIntent.play;
 
-  void request() {
-    _requested = true;
+  void requestPause() {
+    _intent = CastCommandIntent.pause;
+    _postPausePositionAdvances = 0;
+  }
+
+  void requestPlay() {
+    _intent = CastCommandIntent.play;
     _postPausePositionAdvances = 0;
   }
 
   void clear() {
-    _requested = false;
+    _intent = CastCommandIntent.none;
     _postPausePositionAdvances = 0;
   }
 
-  /// Returns true only when repeated post-command movement proves that pause
-  /// was a receiver no-op. A single delayed packet leaves the intent intact.
-  bool recordPositionAdvance() {
-    if (!_requested) return false;
+  CastPositionEvidence recordPositionAdvance() {
+    if (isPlayRequested) {
+      clear();
+      return CastPositionEvidence.playConfirmed;
+    }
+    if (!isPauseRequested) return CastPositionEvidence.none;
     _postPausePositionAdvances++;
     if (_postPausePositionAdvances < minimumPostPausePositionAdvances) {
-      return false;
+      return CastPositionEvidence.none;
     }
     clear();
-    return true;
+    return CastPositionEvidence.pauseIgnored;
   }
 }
 

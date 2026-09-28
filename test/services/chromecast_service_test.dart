@@ -38,6 +38,119 @@ void main() {
       expect(playCalls, 1);
     });
 
+    test(
+      'public toggle remains pauseable after resume ACK and reordered stale streams',
+      () async {
+        final statuses = StreamController<CastPlaybackState>();
+        final positions = StreamController<Duration>();
+        var pauseCalls = 0;
+        var playCalls = 0;
+        final service = ChromecastService.forTesting(
+          pauseCommand: () async => pauseCalls++,
+          playCommand: () async => playCalls++,
+          mediaStatusStream: statuses.stream,
+          positionStream: positions.stream,
+        )..setTestReceiverState(CastPlaybackState.playing);
+        addTearDown(() async {
+          service.dispose();
+          await statuses.close();
+          await positions.close();
+        });
+
+        await service.togglePlayPause();
+        statuses
+          ..add(CastPlaybackState.paused)
+          ..add(CastPlaybackState.buffering);
+        positions.add(const Duration(seconds: 10));
+        await Future<void>.delayed(Duration.zero);
+        expect(pauseCalls, 1);
+        expect(service.shouldPauseOnToggle, isFalse);
+        expect(service.isReceiverActive, isFalse);
+        expect(service.consumeTestTimeListened(DateTime.now()), 0);
+
+        await service.togglePlayPause();
+        expect(playCalls, 1);
+        expect(service.shouldPauseOnToggle, isTrue);
+        expect(service.isReceiverActive, isTrue);
+
+        statuses.add(CastPlaybackState.paused);
+        positions.add(const Duration(seconds: 11));
+        await Future<void>.delayed(Duration.zero);
+        expect(service.shouldPauseOnToggle, isTrue);
+        expect(service.isReceiverActive, isTrue);
+
+        await service.togglePlayPause();
+        expect(pauseCalls, 2);
+        expect(playCalls, 1);
+        expect(service.shouldPauseOnToggle, isFalse);
+        expect(service.isReceiverActive, isFalse);
+
+        await service.togglePlayPause();
+        expect(playCalls, 2);
+        statuses.add(CastPlaybackState.buffering);
+        positions.add(const Duration(seconds: 12));
+        await Future<void>.delayed(Duration.zero);
+        await service.togglePlayPause();
+        expect(pauseCalls, 3);
+        expect(playCalls, 2);
+      },
+    );
+
+    testWidgets('unconfirmed resume intent expires back to receiver state',
+        (tester) async {
+      final service = ChromecastService.forTesting(playCommand: () async {})
+        ..setTestReceiverState(CastPlaybackState.paused);
+      addTearDown(service.dispose);
+      var notifications = 0;
+      service.addListener(() => notifications++);
+
+      await service.togglePlayPause();
+      expect(service.shouldPauseOnToggle, isTrue);
+      expect(service.isReceiverActive, isTrue);
+      final afterResumeNotifications = notifications;
+
+      await tester.pump(castResumeIntentGrace);
+
+      expect(service.playbackState, CastPlaybackState.paused);
+      expect(service.shouldPauseOnToggle, isFalse);
+      expect(service.isReceiverActive, isFalse);
+      expect(notifications, greaterThan(afterResumeNotifications));
+    });
+
+    test('thrown play command keeps paused receiver inactive', () async {
+      var playCalls = 0;
+      final service = ChromecastService.forTesting(
+        playCommand: () {
+          playCalls++;
+          return Future<void>.error(StateError('receiver rejected play'));
+        },
+      )..setTestReceiverState(CastPlaybackState.paused);
+      addTearDown(service.dispose);
+
+      await service.togglePlayPause();
+
+      expect(playCalls, 1);
+      expect(service.playbackState, CastPlaybackState.paused);
+      expect(service.shouldPauseOnToggle, isFalse);
+      expect(service.isReceiverActive, isFalse);
+    });
+
+    test('toggle is a command no-op while disconnected', () async {
+      var pauseCalls = 0;
+      var playCalls = 0;
+      final service = ChromecastService.forTesting(
+        pauseCommand: () async => pauseCalls++,
+        playCommand: () async => playCalls++,
+      )..setTestReceiverState(CastPlaybackState.playing, connected: false);
+      addTearDown(service.dispose);
+
+      await service.togglePlayPause();
+
+      expect(pauseCalls, 0);
+      expect(playCalls, 0);
+      expect(service.playbackState, CastPlaybackState.playing);
+    });
+
     test('confirmed playing after play clears pause intent through status stream',
         () async {
       final statuses = StreamController<CastPlaybackState>();
