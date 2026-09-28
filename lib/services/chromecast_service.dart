@@ -31,9 +31,16 @@ class ChromecastService extends ChangeNotifier {
   ///
   /// Keep [isPlaying] strict so buffering time is not counted as listening
   /// statistics; a receiver can still be audibly playing while reporting it.
-  bool get isReceiverActive => isCastReceiverActive(_playbackState);
+  bool get isReceiverActive => isCastReceiverActive(
+    _playbackState,
+    lastPositionAdvance: _lastCastPositionAdvanceAt,
+    isPauseRequested: _castPauseRequested,
+  );
   bool get isPlaying => _playbackState == CastPlaybackState.playing;
-  bool get shouldPauseOnToggle => shouldPauseCastOnToggle(_playbackState);
+  bool get shouldPauseOnToggle => shouldPauseCastOnToggle(
+    _playbackState,
+    receiverActive: isReceiverActive,
+  );
 
   /// True while a backstop reconnect is being attempted after the sender lost
   /// its connection but the receiver was actively playing (see [_tryReconnect]).
@@ -50,6 +57,8 @@ class ChromecastService extends ChangeNotifier {
   List<dynamic> _castingChapters = [];
   ApiService? _api;
   Duration _castPosition = Duration.zero;
+  DateTime? _lastCastPositionAdvanceAt;
+  bool _castPauseRequested = false;
   String? _connectedDeviceName;
   String? _playbackSessionId;
   int? _castPlayMethod;
@@ -336,6 +345,8 @@ class ChromecastService extends ChangeNotifier {
     _castingDuration = 0;
     _castingChapters = [];
     _castPosition = Duration.zero;
+    _lastCastPositionAdvanceAt = null;
+    _castPauseRequested = false;
     _fallbackTracks = null; _fallbackOffsets = null; _fallbackTrackIdx = -1;
     _queueOffsets = null; _queueTrackIdx = 0;
     _mediaStatusSub?.cancel();
@@ -433,6 +444,8 @@ class ChromecastService extends ChangeNotifier {
         _idleDebounceTimer = null;
       }
 
+      if (target == CastPlaybackState.playing) _castPauseRequested = false;
+
       // If the cast reports idle while we still have an active item that isn't
       // near the end, treat it as a transient blip and wait before actually
       // flipping to idle. This prevents the UI card from vanishing on brief
@@ -504,6 +517,7 @@ class ChromecastService extends ChangeNotifier {
     _positionSub = GoogleCastRemoteMediaClient.instance.playerPositionStream.listen((pos) {
       // ignore: unnecessary_null_comparison
       if (pos != null) {
+        final previousPosition = _castPosition;
         // Queue and fallback modes report track-local positions; translate
         // to absolute book position.
         if (_queueOffsets != null && _queueTrackIdx >= 0 && _queueTrackIdx < _queueOffsets!.length - 1) {
@@ -515,6 +529,14 @@ class ChromecastService extends ChangeNotifier {
         } else {
           _castPosition = pos;
         }
+        if (_castPosition != previousPosition) {
+          _lastCastPositionAdvanceAt = DateTime.now();
+          _castPauseRequested = false;
+        }
+        // A receiver can leave its state at buffering after it stops. Position
+        // events are the liveness evidence for that state, including repeated
+        // unchanged positions which must refresh the UI after the grace period.
+        if (_playbackState == CastPlaybackState.buffering) notifyListeners();
       }
     }, onError: (e) {
       debugPrint('[Cast] positionStream error - re-subscribing: $e');
@@ -620,6 +642,8 @@ class ChromecastService extends ChangeNotifier {
     _castingCoverUrl = coverUrl;
     _castingDuration = totalDuration;
     _castingChapters = chapters;
+    _lastCastPositionAdvanceAt = null;
+    _castPauseRequested = false;
     _playbackState = CastPlaybackState.loading;
     notifyListeners();
 
@@ -938,7 +962,13 @@ class ChromecastService extends ChangeNotifier {
 
   Future<void> play() async {
     if (!isConnected) return;
-    try { await GoogleCastRemoteMediaClient.instance.play(); } catch (_) {}
+    try {
+      await GoogleCastRemoteMediaClient.instance.play();
+      _castPauseRequested = false;
+    } catch (e) {
+      debugPrint('[Cast] play error: $e');
+      return;
+    }
     // Reset the sync clock so the first tick after resume only counts the
     // seconds actually played since now, not the wall-clock elapsed since
     // the last sync (which would include the entire pause).
@@ -946,7 +976,15 @@ class ChromecastService extends ChangeNotifier {
   }
   Future<void> pause() async {
     if (!isConnected) return;
-    try { await GoogleCastRemoteMediaClient.instance.pause(); } catch (_) {}
+    try {
+      await GoogleCastRemoteMediaClient.instance.pause();
+      _castPauseRequested = true;
+      _playbackState = CastPlaybackState.paused;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[Cast] pause error: $e');
+      return;
+    }
     await _saveProgressLocal();
     await _syncProgressToServer();
   }
