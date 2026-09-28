@@ -77,6 +77,54 @@ void main() {
       );
     });
 
+    test('delayed position and buffering events do not undo pause intent', () {
+      const pausedBySender = true;
+
+      // A position packet that was in flight before pause() completed is not
+      // receiver resume evidence, and neither is a stale buffering status.
+      expect(shouldClearCastPauseIntent(CastPlaybackState.buffering), isFalse);
+      expect(shouldClearCastPauseIntent(CastPlaybackState.paused), isFalse);
+      expect(
+        isCastReceiverActive(
+          CastPlaybackState.buffering,
+          lastPositionAdvance: DateTime.utc(2026, 1, 1, 12),
+          now: DateTime.utc(2026, 1, 1, 12, 0, 1),
+          isPauseRequested: pausedBySender,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldPauseCastOnToggle(
+          CastPlaybackState.buffering,
+          receiverActive: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('confirmed playing or resume is the only pause-intent reset', () {
+      expect(shouldClearCastPauseIntent(CastPlaybackState.playing), isTrue);
+    });
+
+    test('buffering liveness exposes a finite rebuild deadline', () {
+      final positionAdvance = DateTime.utc(2026, 1, 1, 12);
+      expect(
+        castBufferingLivenessDeadline(
+          CastPlaybackState.buffering,
+          lastPositionAdvance: positionAdvance,
+        ),
+        positionAdvance.add(staleCastBufferingGrace),
+      );
+      expect(
+        castBufferingLivenessDeadline(
+          CastPlaybackState.buffering,
+          lastPositionAdvance: positionAdvance,
+          isPauseRequested: true,
+        ),
+        isNull,
+      );
+    });
+
     test('loading receiver pauses on toggle but does not run sleep timer', () {
       expect(isCastReceiverActive(CastPlaybackState.loading), isFalse);
       expect(shouldPauseCastOnToggle(CastPlaybackState.loading), isTrue);

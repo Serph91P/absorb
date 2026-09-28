@@ -59,6 +59,7 @@ class ChromecastService extends ChangeNotifier {
   Duration _castPosition = Duration.zero;
   DateTime? _lastCastPositionAdvanceAt;
   bool _castPauseRequested = false;
+  Timer? _bufferingLivenessTimer;
   String? _connectedDeviceName;
   String? _playbackSessionId;
   int? _castPlayMethod;
@@ -122,6 +123,35 @@ class ChromecastService extends ChangeNotifier {
   bool _initialized = false;
   bool _isCompletingBook = false;
   bool _foregroundServiceActive = false;
+
+  /// Rebuild the controls when buffering liveness expires even if the receiver
+  /// stops emitting position events. Without this, the getter becomes false
+  /// after the grace period but no listener is told to re-read it.
+  void _scheduleBufferingLivenessNotification() {
+    _bufferingLivenessTimer?.cancel();
+    if (_playbackState != CastPlaybackState.buffering ||
+        _castPauseRequested ||
+        _lastCastPositionAdvanceAt == null) {
+      _bufferingLivenessTimer = null;
+      return;
+    }
+    final deadline = castBufferingLivenessDeadline(
+      _playbackState,
+      lastPositionAdvance: _lastCastPositionAdvanceAt,
+      isPauseRequested: _castPauseRequested,
+    )!;
+    final delay = deadline.difference(DateTime.now());
+    _bufferingLivenessTimer = Timer(
+      delay.isNegative ? Duration.zero : delay + const Duration(milliseconds: 1),
+      () {
+        _bufferingLivenessTimer = null;
+        if (_playbackState == CastPlaybackState.buffering &&
+            !isReceiverActive) {
+          notifyListeners();
+        }
+      },
+    );
+  }
 
   /// Method channel to the native Android CastForegroundService. The Cast SDK
   /// notification lives in Google Play Services' process, so Absorb's process
@@ -347,6 +377,8 @@ class ChromecastService extends ChangeNotifier {
     _castPosition = Duration.zero;
     _lastCastPositionAdvanceAt = null;
     _castPauseRequested = false;
+    _bufferingLivenessTimer?.cancel();
+    _bufferingLivenessTimer = null;
     _fallbackTracks = null; _fallbackOffsets = null; _fallbackTrackIdx = -1;
     _queueOffsets = null; _queueTrackIdx = 0;
     _mediaStatusSub?.cancel();
@@ -444,7 +476,7 @@ class ChromecastService extends ChangeNotifier {
         _idleDebounceTimer = null;
       }
 
-      if (target == CastPlaybackState.playing) _castPauseRequested = false;
+      if (shouldClearCastPauseIntent(target)) _castPauseRequested = false;
 
       // If the cast reports idle while we still have an active item that isn't
       // near the end, treat it as a transient blip and wait before actually
@@ -481,6 +513,7 @@ class ChromecastService extends ChangeNotifier {
       } else {
         _playbackState = target;
       }
+      _scheduleBufferingLivenessNotification();
 
       // Notify listeners & manage wake lock on playback state transitions
       final wasPlaying = prev == CastPlaybackState.playing || prev == CastPlaybackState.buffering;
@@ -531,7 +564,10 @@ class ChromecastService extends ChangeNotifier {
         }
         if (_castPosition != previousPosition) {
           _lastCastPositionAdvanceAt = DateTime.now();
-          _castPauseRequested = false;
+          // A delayed position packet can be in flight when pause() is
+          // acknowledged. Only an explicit resume/playing event clears the
+          // pause intent; otherwise stale buffering would turn Pause back on.
+          _scheduleBufferingLivenessNotification();
         }
         // A receiver can leave its state at buffering after it stops. Position
         // events are the liveness evidence for that state, including repeated
@@ -965,6 +1001,7 @@ class ChromecastService extends ChangeNotifier {
     try {
       await GoogleCastRemoteMediaClient.instance.play();
       _castPauseRequested = false;
+      _scheduleBufferingLivenessNotification();
     } catch (e) {
       debugPrint('[Cast] play error: $e');
       return;
@@ -980,6 +1017,7 @@ class ChromecastService extends ChangeNotifier {
       await GoogleCastRemoteMediaClient.instance.pause();
       _castPauseRequested = true;
       _playbackState = CastPlaybackState.paused;
+      _scheduleBufferingLivenessNotification();
       notifyListeners();
     } catch (e) {
       debugPrint('[Cast] pause error: $e');
@@ -1265,6 +1303,7 @@ class ChromecastService extends ChangeNotifier {
     _idleDebounceTimer?.cancel();
     _disconnectDebounceTimer?.cancel();
     _reconnectTimer?.cancel();
+    _bufferingLivenessTimer?.cancel();
     super.dispose();
   }
 }

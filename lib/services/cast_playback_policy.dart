@@ -25,6 +25,27 @@ bool isCastReceiverActive(
       staleCastBufferingGrace;
 }
 
+/// The deadline at which a buffering receiver must cause a controls rebuild.
+/// Null means that the current state has no position-based liveness window.
+DateTime? castBufferingLivenessDeadline(
+  CastPlaybackState state, {
+  DateTime? lastPositionAdvance,
+  bool isPauseRequested = false,
+}) {
+  if (state != CastPlaybackState.buffering ||
+      isPauseRequested ||
+      lastPositionAdvance == null) {
+    return null;
+  }
+  return lastPositionAdvance.add(staleCastBufferingGrace);
+}
+
+/// A position packet is not playback confirmation: it may have been queued
+/// before a successful pause command. Only playing / an acknowledged resume
+/// may clear the sender's pause intent.
+bool shouldClearCastPauseIntent(CastPlaybackState receiverState) =>
+    receiverState == CastPlaybackState.playing;
+
 /// Whether a play/pause toggle must send pause rather than play.
 ///
 /// Loading can still be cancelled. Buffering follows the same liveness evidence
