@@ -14,7 +14,12 @@ enum CastConnectionState { disconnected, connecting, connected }
 class ChromecastService extends ChangeNotifier {
   static final ChromecastService _instance = ChromecastService._();
   factory ChromecastService() => _instance;
-  ChromecastService._() : _pauseCommand = null, _playCommand = null, _now = DateTime.now;
+  ChromecastService._()
+    : _pauseCommand = null,
+      _playCommand = null,
+      _testMediaStatusStream = null,
+      _testPositionStream = null,
+      _now = DateTime.now;
 
   /// Narrow command/stream seam for deterministic Cast-control regression tests.
   /// Production construction continues to use the Cast plugin singleton.
@@ -22,13 +27,21 @@ class ChromecastService extends ChangeNotifier {
   ChromecastService.forTesting({
     Future<void> Function()? pauseCommand,
     Future<void> Function()? playCommand,
+    Stream<CastPlaybackState>? mediaStatusStream,
+    Stream<Duration>? positionStream,
     DateTime Function()? now,
   }) : _pauseCommand = pauseCommand,
        _playCommand = playCommand,
-       _now = now ?? DateTime.now;
+       _testMediaStatusStream = mediaStatusStream,
+       _testPositionStream = positionStream,
+       _now = now ?? DateTime.now {
+    _listenToTestStreams();
+  }
 
   final Future<void> Function()? _pauseCommand;
   final Future<void> Function()? _playCommand;
+  final Stream<CastPlaybackState>? _testMediaStatusStream;
+  final Stream<Duration>? _testPositionStream;
   final DateTime Function() _now;
 
   /// Whether Chromecast is available in this build. True here; the GMS-free
@@ -601,6 +614,36 @@ class ChromecastService extends ChangeNotifier {
     });
   }
 
+  /// A typed mirror of the receiver subscriptions, used only by deterministic
+  /// service tests so delayed Cast events can be exercised without the plugin.
+  void _listenToTestStreams() {
+    final mediaStatusStream = _testMediaStatusStream;
+    if (mediaStatusStream != null) {
+      _mediaStatusSub = mediaStatusStream.listen(_handleTestMediaStatus);
+    }
+    final positionStream = _testPositionStream;
+    if (positionStream != null) {
+      _positionSub = positionStream.listen(_handlePosition);
+    }
+  }
+
+  void _handleTestMediaStatus(CastPlaybackState target) {
+    final previous = _playbackState;
+    if (shouldClearCastPauseIntent(target)) {
+      _castPauseRequested = false;
+      _castPauseIntent.clear();
+      _playbackStateBeforePause = null;
+    }
+    _playbackState = target;
+    _scheduleBufferingLivenessNotification();
+    final wasActive = previous == CastPlaybackState.playing ||
+        previous == CastPlaybackState.buffering;
+    final isActive = target == CastPlaybackState.playing ||
+        target == CastPlaybackState.buffering;
+    if (wasActive != isActive) _onPlaybackStateChangedCallback?.call(isActive);
+    notifyListeners();
+  }
+
   Stream<Duration>? get castPositionStream =>
       GoogleCastRemoteMediaClient.instance.playerPositionStream;
 
@@ -637,6 +680,31 @@ class ChromecastService extends ChangeNotifier {
     _connectionState = connected ? CastConnectionState.connected : CastConnectionState.disconnected;
     _playbackState = state;
   }
+
+  @visibleForTesting
+  void setTestReconnecting(bool reconnecting) {
+    _connectionState = CastConnectionState.disconnected;
+    _reconnecting = reconnecting;
+  }
+
+  @visibleForTesting
+  Future<void> completeTestReconnect() async {
+    _connectionState = CastConnectionState.connected;
+    _reconnecting = false;
+    if (_pendingSleepPause) {
+      _pendingSleepPause = false;
+      await pause();
+    }
+  }
+
+  int _consumeTimeListened(DateTime now) {
+    final elapsed = now.difference(_lastSyncTime).inSeconds.clamp(0, 300);
+    _lastSyncTime = now;
+    return isPlaying ? elapsed : 0;
+  }
+
+  @visibleForTesting
+  int consumeTestTimeListened(DateTime now) => _consumeTimeListened(now);
 
   // ── Discovery / Connection ──
 
@@ -1271,8 +1339,7 @@ class ChromecastService extends ChangeNotifier {
     if (ct <= 0) return;
     try {
       final now = DateTime.now();
-      final elapsed = now.difference(_lastSyncTime).inSeconds.clamp(0, 300);
-      _lastSyncTime = now;
+      final elapsed = _consumeTimeListened(now);
 
       if (_playbackSessionId != null) {
         debugPrint('[CastSync] ct=${ct.toStringAsFixed(1)}s timeListened=${elapsed}s sid=${_playbackSessionId!.substring(0, 8)}...');

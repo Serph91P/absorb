@@ -1,9 +1,92 @@
+import 'dart:async';
+
 import 'package:absorb/services/cast_playback_policy.dart';
 import 'package:absorb/services/chromecast_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('ChromecastService Cast pause seam', () {
+    test('status and position streams retain a pause through delayed buffering',
+        () async {
+      final statuses = StreamController<CastPlaybackState>();
+      final positions = StreamController<Duration>();
+      var pauseCalls = 0;
+      var playCalls = 0;
+      final service = ChromecastService.forTesting(
+        pauseCommand: () async => pauseCalls++,
+        playCommand: () async => playCalls++,
+        mediaStatusStream: statuses.stream,
+        positionStream: positions.stream,
+      )..setTestReceiverState(CastPlaybackState.playing);
+      addTearDown(() async {
+        service.dispose();
+        await statuses.close();
+        await positions.close();
+      });
+
+      await service.pause();
+      positions.add(const Duration(seconds: 10));
+      statuses.add(CastPlaybackState.buffering);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(pauseCalls, 1);
+      expect(service.playbackState, CastPlaybackState.buffering);
+      expect(service.isReceiverActive, isFalse);
+      expect(service.shouldPauseOnToggle, isFalse);
+
+      await service.togglePlayPause();
+      expect(playCalls, 1);
+    });
+
+    test('confirmed playing after play clears pause intent through status stream',
+        () async {
+      final statuses = StreamController<CastPlaybackState>();
+      var playCalls = 0;
+      final service = ChromecastService.forTesting(
+        playCommand: () async => playCalls++,
+        mediaStatusStream: statuses.stream,
+      )..setTestReceiverState(CastPlaybackState.paused);
+      addTearDown(() async {
+        service.dispose();
+        await statuses.close();
+      });
+
+      await service.play();
+      statuses.add(CastPlaybackState.playing);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(playCalls, 1);
+      expect(service.playbackState, CastPlaybackState.playing);
+      expect(service.isReceiverActive, isTrue);
+    });
+
+    test('sleep pause survives reconnect and is applied once connected',
+        () async {
+      var pauseCalls = 0;
+      final service = ChromecastService.forTesting(
+        pauseCommand: () async => pauseCalls++,
+      )..setTestReconnecting(true);
+      addTearDown(service.dispose);
+
+      await service.pauseNowOrOnReconnect();
+      expect(pauseCalls, 0);
+      expect(service.isReconnecting, isTrue);
+
+      await service.completeTestReconnect();
+      expect(pauseCalls, 1);
+      expect(service.playbackState, CastPlaybackState.paused);
+    });
+
+    test('paused Cast time-listened sync consumes no paused seconds', () {
+      final service = ChromecastService.forTesting()
+        ..setTestReceiverState(CastPlaybackState.paused);
+      addTearDown(service.dispose);
+
+      expect(
+        service.consumeTestTimeListened(DateTime.now().add(const Duration(minutes: 2))),
+        0,
+      );
+    });
     test('successful pause command immediately renders paused', () async {
       var pauseCalls = 0;
       final service = ChromecastService.forTesting(
